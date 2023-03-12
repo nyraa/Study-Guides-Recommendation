@@ -6,7 +6,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     
     $account = $_POST["account"];
     $password = $_POST["password"];
-    echo "<script>console.log('" . $account . "  " . $password ."');</script>";
+    echo "<script>console.log('" . addslashes($account) . "  " . addslashes($password) ."');</script>";
     if($account === $acc && $password === $pwd){
         $_SESSION["login"] = true;
         echo "<script>location.href = '/cms/cms.php';</script>";
@@ -37,7 +37,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 <body>
     <center> 
         <div id="login">
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="post">
+            <form action="<?php echo urlencode(htmlspecialchars($_SERVER["PHP_SELF"]));?>" method="post">
                 <div class="form-group">
                     <label for="exampleInputEmail1">帳號：</label>
                     <input name = "account" type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
