@@ -329,7 +329,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") { // insert data
         if($category == 0){
             echo "<script>
                 $('document').ready(function(){
-                    var data = '留言成功，經審核後就會出現在留言板上囉！<br>您的兌換碼: " . htmlspecialchars(addslashes($redeemCode)) . "<br>（留言審核通過後可至合作網站書愛流動兌換知識貨幣）';
+                    var data = '留言成功，經審核後就會出現在留言板上囉！<br>您的兌換碼: $redeemCode<br>（留言審核通過後可至合作網站書愛流動兌換知識貨幣）';
                     $('#redeemCodeAlertBody').html(data);
                     $('#redeemCodeAlert').modal('show');
                     $('#redeemCodeAlert').on('hidden.bs.modal', function(){
