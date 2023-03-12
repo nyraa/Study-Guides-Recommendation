@@ -19,7 +19,7 @@
                     url: '/msgBoard.php',
                     method: "get",
                     data: {
-                        type: category 
+                        type: category
                     },
                     success: function(data){
                         if(category == 0){
@@ -27,7 +27,7 @@
                         } else {
                             $("#pills-emotion").html(data);
                         }
-                        
+
                     },
                     error: function(data){
                         console.log(error);
@@ -99,11 +99,11 @@
         }
         .tab-content{
             padding-top:   3%; 
-            padding: 2%; 
+            padding: 2%;
             border-left:   5px solid #4aa184; 
             border-right:  5px solid #4aa184; 
             border-top:    7px solid #4aa184; 
-            border-bottom: 7px solid #4aa184; 
+            border-bottom: 7px solid #4aa184;
             border-bottom-left-radius: 5px;
             border-bottom-right-radius: 5px;
             border-top-right-radius: 5px;
@@ -117,7 +117,7 @@
             padding-left: 2%;
             padding-right: 2%;
             padding-bottom: 1.5%;
-            
+
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             border-width: 0;
@@ -172,7 +172,7 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" href="about.html">About us</a>
-                              </li>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="query.php">瀏覽清單</a>
                             </li>
@@ -203,9 +203,9 @@
             <h2>留言板</h2>
             <p>這裡是一個匿名的小空間，無論是互助或者是取暖，都在這裡留下你的心情吧！<br>
                 現在在讀書技巧版留言，審核通過後就可以獲得書愛流動的知識貨幣，至該網站兌換書籍。<br>
-                <div class="alert alert-warning" role="alert">
-                    注意：留言要經過審核才會刊登在網頁上，請勿發表具有攻擊性、冒犯性以及歧視性等字眼。
-                </div>
+            <div class="alert alert-warning" role="alert">
+                注意：留言要經過審核才會刊登在網頁上，請勿發表具有攻擊性、冒犯性以及歧視性等字眼。
+            </div>
             </p>
 
             <div class="nav">
@@ -225,11 +225,11 @@
             <!-- box-shadow: 0px 3px 3px 2px rgb(196, 255, 213); clip-path: inset(0px -15px -10px -15px)-->
             <div class="tab-content" id="pills-tabContent">
                 <div class="tab-pane fade show active" id="pills-studyPlan" role="tabpanel" aria-labelledby="pills-studyPlan-tab" tabindex="0">
-                    
-                </div>        
+
+                </div>
 
                 <div class="tab-pane fade" id="pills-emotion" role="tabpanel" aria-labelledby="pills-emotion-tab" tabindex="0">
-                    
+
                 </div>
             </div>
             <!--留言區-->
@@ -274,14 +274,19 @@
 
 <?php
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!".$connection->connnect_error);
+
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!$e");
+}
 //else echo "Success!";
 $connection->set_charset("utf8");
 
 function test_input($data) {
     $data = trim($data);
-    $data = stripslashes($data);
+    // $data = addslashes($data);
     $data = htmlspecialchars($data);
     return $data;
 }
@@ -297,12 +302,22 @@ if($_SERVER["REQUEST_METHOD"] == "POST") { // insert data
     } else {
         $category = 1;
     }
-    $insert = "INSERT INTO msgBoard (category, title, msg, redeemCode) VALUES ('$category', '$title', '$msg', '$redeemCode')";
-    if($connection->query($insert) === true){
+
+    $insert = "INSERT INTO msgBoard (category, title, msg, redeemCode) VALUES (:category, :title, :msg, :redeemCode)";
+    $stmt = $pdo->prepare($insert);
+
+    $stmt->bindParam(':category', $category);
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':msg', $msg);
+    $stmt->bindParam(':redeemCode', $redeemCode);
+
+    // 執行 SQL 語句
+    if ($stmt->execute())
+    {
         echo "
         <script type='text/javascript' src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js'></script>
         <script>
-          emailjs.init('" . $emailjsToken . "');
+          emailjs.init('" . addslashes($emailjsToken) . "');
             var tmp = {type: '留言'};
             emailjs.send('service_ecyjr9k', 'template_qfesiq6', tmp)
                     .then(function(response) {
@@ -314,7 +329,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") { // insert data
         if($category == 0){
             echo "<script>
                 $('document').ready(function(){
-                    var data = '留言成功，經審核後就會出現在留言板上囉！<br>您的兌換碼: " . $redeemCode . "<br>（留言審核通過後可至合作網站書愛流動兌換知識貨幣）';
+                    var data = '留言成功，經審核後就會出現在留言板上囉！<br>您的兌換碼: " . htmlspecialchars(addslashes($redeemCode)) . "<br>（留言審核通過後可至合作網站書愛流動兌換知識貨幣）';
                     $('#redeemCodeAlertBody').html(data);
                     $('#redeemCodeAlert').modal('show');
                     $('#redeemCodeAlert').on('hidden.bs.modal', function(){
@@ -346,5 +361,4 @@ if($_SERVER["REQUEST_METHOD"] == "POST") { // insert data
             });
         </script>";
     }
-}
 ?>
