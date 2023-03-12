@@ -13,7 +13,7 @@ $query = "SELECT * FROM book WHERE id=:bookId";
 $stmt = $pdo->prepare($query);
 $stmt->bindParam(':bookId', $bookId);
 $stmt->execute();
-$bookDetail = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$bookDetail = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(empty($bookDetail))
 {
@@ -21,21 +21,18 @@ if(empty($bookDetail))
 }
 else
 {
-    foreach($row as $bookDetail)
-    {
-        $subject = $row['subject'];
-        $name = $row['name'];
-        $exam = $row['exam'];
-        $publisher = $row['publisher'];
-        $picture = $row['picture'];
-        $category = $row['category'];
-        $dataAmount = $row['dataAmount'];
-        $overall = $row['overall'];
-        $content = $row['content'];
-        $difficulty = $row['difficulty'];
-        $answer = $row['answer'];
-        $layout = $row['layout'];
-    }
+    $subject = $bookDetail['subject'];
+    $name = $bookDetail['name'];
+    $exam = $bookDetail['exam'];
+    $publisher = $bookDetail['publisher'];
+    $picture = $bookDetail['picture'];
+    $category = $bookDetail['category'];
+    $dataAmount = $bookDetail['dataAmount'];
+    $overall = $bookDetail['overall'];
+    $content = $bookDetail['content'];
+    $difficulty = $bookDetail['difficulty'];
+    $answer = $bookDetail['answer'];
+    $layout = $bookDetail['layout'];
 }
 function _date($str)
 {
