@@ -204,7 +204,7 @@ function _date($str)
                 }
                 else
                 {
-                    foreach($row as $result)
+                    foreach($result as $row)
                     {
                         echo "<div class='comment'>\n";
                         echo "<small style='color:rgb(142, 138, 138);'>" . _date($row['date']) . "</small>";
