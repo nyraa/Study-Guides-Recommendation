@@ -1,13 +1,16 @@
 <?php
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!");
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!$e");
+}
 //else echo "Success!";
-$connection->set_charset("utf8");
 
 function test_input($data) {
     $data = trim($data);
-    $data = stripslashes($data);
+    // $data = addslashes($data);
     $data = htmlspecialchars($data);
     return $data;
 }
@@ -198,16 +201,27 @@ $subject = $search = $category = $exam = '%%';
                         //echo "<script language='javascript'>window.console.log('bookName is empty.');</script>";
                     }
                     //echo "<script language='javascript'>window.console.log('" . $subject . " / " . $search . " / " . $category . " / " . $exam . "');</script>";
-                    
-                    $select = "SELECT * FROM book WHERE subject LIKE '$subject' AND name LIKE '$search' AND 
-                        category LIKE '$category' AND exam LIKE '$exam' ORDER BY overall DESC, dataAmount DESC";
+                    $select = "SELECT * FROM book WHERE subject LIKE :subject AND name LIKE :search AND category LIKE :category AND exam LIKE :exam ORDER BY overall DESC, dataAmount DESC";
+                    $stmt = $pdo->prepare($select);
+                    $stmt->bindValue(':subject', '%'.$subject.'%', PDO::PARAM_STR);
+                    $stmt->bindValue(':search', '%'.$search.'%', PDO::PARAM_STR);
+                    $stmt->bindValue(':category', '%'.$category.'%', PDO::PARAM_STR);
+                    $stmt->bindValue(':exam', '%'.$exam.'%', PDO::PARAM_STR);
+                    $stmt->execute();
+                    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
                     //echo "<script language='javascript'>window.console.log('" . $select . "');</script>";
 
-                    $result = $connection->query($select);
                     echo "<h1 style='text-align: center;'>搜尋結果</h1>";
-                    if($result->num_rows > 0){
+                    if(empty($result))
+                    {
+                        echo "<p>沒有符合條件的書籍</p>";
+                    }
+                    else
+                    {
                        echo "<p>點按書籍封面看更多詳細資料</p>";
-                        while($row = $result->fetch_assoc()){
+                        foreach($result as $row)
+                        {
                             echo "<div class='card mb-0' type='button' onclick='detail(" . $row['id'] . ")' target='_blank' style='max-width: 500px; display: inline-block; margin: 1%'>\n";
                             echo "<div class='row g-0'>\n";
                             echo "<div class='col-md-4 sm-6'>\n";
@@ -221,8 +235,6 @@ $subject = $search = $category = $exam = '%%';
                                 echo "<p class='card-text'><small>&#11088 " . round($row['overall'], 1) . "<br>目前評論人數：" . $row['dataAmount'] . "</small></p>\n</div>\n</div>\n</div>\n</div>";
                             }
                         }
-                    } else {
-                        echo "<p>沒有符合條件的書籍</p>";
                     }
                     echo '<p>找不到想要的書嗎？分享給學長姐請他們來新增評論吧！</p>';
                     echo '<a href="https://social-plugins.line.me/lineit/share?url=https://study-guides.dstw.dev/questionnaire.php"><img src="line.png" style="width:2em; margin: 0 0.5em 0.5em;"></a>';
