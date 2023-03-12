@@ -1,15 +1,28 @@
 <?php
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if ($connection->error) die("database connection error!");
-//else echo "Success!";
-$connection->set_charset("utf8");
+
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!");
+}
 
 $bookId = $_GET['id'];
-$bookDetail = "SELECT * FROM book WHERE id='$bookId'";
-$result = $connection->query($bookDetail);
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
+$query = "SELECT * FROM book WHERE id=:bookId";
+$stmt = $pdo->prepare($query);
+$stmt->bindParam(':bookId', $bookId);
+$stmt->execute();
+$bookDetail = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if(empty($bookDetail))
+{
+    echo "<script>alert('查無此書');location.href='/query.php'</script>";
+}
+else
+{
+    foreach($row as $bookDetail)
+    {
         $subject = $row['subject'];
         $name = $row['name'];
         $exam = $row['exam'];
@@ -23,8 +36,6 @@ if ($result->num_rows > 0) {
         $answer = $row['answer'];
         $layout = $row['layout'];
     }
-} else {
-    echo "<script>alert('查無此書');location.href='/query.php'</script>";
 }
 function _date($str)
 {
@@ -57,7 +68,7 @@ function _date($str)
     </script>
     <link rel="icon" type="image/x-icon" href="icon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $name; ?> 評價</title>
+    <title><?php echo htmlspecialchars($name); ?> 評價</title>
     <link rel="stylesheet" type="text/css" href="detail.css?id=<?php echo rand(1, 100) ?>">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
     <script>
@@ -98,9 +109,9 @@ function _date($str)
 
         function oldCover() {
             var message = {
-                bookID: '<?php echo $bookId ?>',
-                bookName: '<?php echo $name ?>',
-                searchURL: 'www.google.com/search?q=<?php echo $name ?>'
+                bookID: '<?php echo htmlspecialchars($bookId) ?>',
+                bookName: '<?php echo htmlspecialchars($name) ?>',
+                searchURL: 'www.google.com/search?q=<?php echo htmlspecialchars($name) ?>'
             };
             emailjs.send('service_ecyjr9k', 'template_egzx9ah', message)
                 .then(function(response) {
@@ -165,17 +176,17 @@ function _date($str)
         <div class="content">
             <div class="detail">
                 <div class="container" id="container">
-                    <img id="image" class="image" src=<?php echo $picture; ?> alt="<?php echo $name; ?>"> <!--這裡放圖片-->
+                    <img id="image" class="image" src=<?php echo htmlspecialchars($picture); ?> alt="<?php echo htmlspecialchars($name); ?>"> <!--這裡放圖片-->
                 </div>
                 <div class="name_rating" id="name_rating">
                     <h2 id="rating_title"><?php echo $name ?></h2>
-                    <span id="rating" style="color: #2a906b"><?php echo $exam . ' / ' .  $subject . ' / ' . $category; ?></span>
+                    <span id="rating" style="color: #2a906b"><?php echo htmlspecialchars($exam) . ' / ' .  $subject . ' / ' . $category; ?></span>
                     <span class="rating">綜合給分 &#11088 <?php echo round($overall, 1); ?> </span>
                     <span class="rating">內容豐富程度 &#11088 <?php echo round($content, 1); ?></span>
                     <span class="rating">難易度 &#11088 <?php echo round($difficulty, 1); ?></span>
                     <span class="rating">詳解詳細程度 &#11088 <?php echo round($answer, 1); ?></span>
                     <span class="rating">排版/美編/顏色 &#11088 <?php echo round($layout, 1); ?></span>
-                    <span style="color:rgb(124, 124, 124)">（評分人數：<?php echo $dataAmount; ?>）</span>
+                    <span style="color:rgb(124, 124, 124)">（評分人數：<?php echo htmlspecialchars($dataAmount); ?>）</span>
 
                     <button id="oldCover" class="btn btn-outline-success" onclick="confirmEmail()" style="margin: 1%">這本書不是這個封面</button>
                 </div>
@@ -183,29 +194,35 @@ function _date($str)
             <div>
                 <h3 style="margin: 5px;">其他評價</h3>
                 <?php
-                $select = "SELECT date, comment, bookriver FROM questionnaire WHERE book='$bookId' AND review=1 ORDER BY id DESC";
-                $_result = $connection->query($select);
+                $query = "SELECT date, comment, bookriver FROM questionnaire WHERE book=:bookId AND review=1 ORDER BY id DESC";
+                $stmt = $pdo->prepare($query);
+                $stmt->bindParam(':bookId', $bookId);
+                $stmt->execute();
+                $result = $stmt->fetchAll(PDO::FETCH_OBJ);
+
                 //echo "<script language='javascript'>window.console.log('" . $connection->error . "');</script>";
-                if ($_result->num_rows > 0) {
-                    while ($_row = $_result->fetch_assoc()) {
-                        if (!empty($_row['comment'])) {
-                            echo "<div class='comment'>\n";
-                            echo "<small style='color:rgb(142, 138, 138);'>" . _date($_row['date']) . "</small>";
-                            if ($_row["bookriver"]) {
-                                echo "&nbsp;&nbsp;<span class='badge badge-pill badge-primary' style='background: #478058;'>來自書愛流動的捐書者</span>";
-                            }
-                            echo "<br><span>" . nl2br($_row['comment']) . "</span>\n</div>";
-                        }
-                    }
-                } else {
+                if(empty($result))
+                {
                     echo "<span>尚無人評論</span>";
+                }
+                else
+                {
+                    foreach($row as $result)
+                    {
+                        echo "<div class='comment'>\n";
+                        echo "<small style='color:rgb(142, 138, 138);'>" . _date($row['date']) . "</small>";
+                        if ($row["bookriver"]) {
+                            echo "&nbsp;&nbsp;<span class='badge badge-pill badge-primary' style='background: #478058;'>來自書愛流動的捐書者</span>";
+                        }
+                        echo "<br><span>" . nl2br(htmlspecialchars($row['comment'])) . "</span>\n</div>";
+                    }
                 }
                 ?>
             </div>
             <div>
                 <center>
                     <button class="btn btn-outline-success" style="margin: 2%;" onclick="location.href='/questionnaire.php?subject=<?php echo $subject ?>&book=<?php echo $bookId ?>'">去評論</button>
-                    <a href='https://booksriver.q23rf.repl.co/get/id=<?php echo $bookId ?>'><button class="btn btn-outline-success" style="margin: 2%;">找二手</button></a>
+                    <a href='https://booksriver.q23rf.repl.co/get/id=<?php echo htmlspecialchars($bookId) ?>'><button class="btn btn-outline-success" style="margin: 2%;">找二手</button></a>
                 </center>
             </div>
         </div>
