@@ -109,9 +109,9 @@ function _date($str)
 
         function oldCover() {
             var message = {
-                bookID: '<?php echo htmlspecialchars($bookId) ?>',
-                bookName: '<?php echo htmlspecialchars($name) ?>',
-                searchURL: 'www.google.com/search?q=<?php echo htmlspecialchars($name) ?>'
+                bookID: '<?php echo addslashes(htmlspecialchars($bookId)) ?>',
+                bookName: '<?php echo addslashes(htmlspecialchars($name)) ?>',
+                searchURL: 'www.google.com/search?q=<?php echo urlencode(htmlspecialchars($name)) ?>'
             };
             emailjs.send('service_ecyjr9k', 'template_egzx9ah', message)
                 .then(function(response) {
@@ -222,7 +222,7 @@ function _date($str)
             <div>
                 <center>
                     <button class="btn btn-outline-success" style="margin: 2%;" onclick="location.href='/questionnaire.php?subject=<?php echo $subject ?>&book=<?php echo $bookId ?>'">去評論</button>
-                    <a href='https://booksriver.q23rf.repl.co/get/id=<?php echo htmlspecialchars($bookId) ?>'><button class="btn btn-outline-success" style="margin: 2%;">找二手</button></a>
+                    <a href='https://booksriver.q23rf.repl.co/get/id=<?php echo urlencode(htmlspecialchars($bookId)) ?>'><button class="btn btn-outline-success" style="margin: 2%;">找二手</button></a>
                 </center>
             </div>
         </div>
