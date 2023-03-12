@@ -312,7 +312,7 @@ $email = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($_POST["email"]))  $email = test_input($_POST["email"]);
-    $postdata = json_encode(array("email" => htmlspecialchars($email)));
+    $postdata = json_encode(array("email" => $email));
     echo "<script>console.log('" . $postdata . "')</script>";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "https://connect.mailerlite.com/api/subscribers");
