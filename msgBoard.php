@@ -23,7 +23,7 @@ if($_SERVER["REQUEST_METHOD"] == "GET") { // study or emo
     else $type = "emotion";
     echo "<script>console.log('" . addslashes($category) . "');</script>";
     $select = "SELECT * FROM msgBoard WHERE category=:category AND review=1";
-    $stmt = $connection->prepare($select);
+    $stmt = $pdo->prepare($select);
     $stmt->bindParam(':category', $category, PDO::PARAM_STR);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
