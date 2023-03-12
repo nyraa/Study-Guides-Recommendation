@@ -1,8 +1,11 @@
 <?php
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!");
-$connection->set_charset("utf8");
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!$e");
+}
 //echo $connection -> character_set_name();
 $subject = $name = $publisher = $date = "";
 
@@ -30,9 +33,17 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         if ($Received_JsonParse['success'] == true) {
             $ImgURL = $Received_JsonParse['data']['link'];
             $insert = "INSERT INTO book (subject, name, exam, category, publisher, picture) 
-                VALUES ('$subject', '$name', '$exam', '$category', '$publisher', '$ImgURL')";
+            VALUES (:subject, :name, :exam, :category, :publisher, :picture)";
+            $stmt = $pdo->prepare($insert);
+            $stmt->bindParam(':subject', $subject, PDO::PARAM_STR);
+            $stmt->bindParam(':name', $name, PDO::PARAM_STR);
+            $stmt->bindParam(':exam', $exam, PDO::PARAM_STR);
+            $stmt->bindParam(':category', $category, PDO::PARAM_STR);
+            $stmt->bindParam(':publisher', $publisher, PDO::PARAM_STR);
+            $stmt->bindParam(':picture', $ImgURL, PDO::PARAM_STR);
             
-            if($connection->query($insert) === true){
+            
+            if($stmt->execute()){
                 echo "<script language='javascript'>alert('成功新增書籍，感謝您的幫忙！');location.href='/newBook.php';</script>";
                 //echo "success";
             } else {
@@ -40,7 +51,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                 //echo "an error occurred when inserted into database";
             }
         } else {
-            echo "<script language='javascript'>window.console.log('**" . $curl_result . "')</script>";
+            echo "<script language='javascript'>window.console.log('**" . addslashes($curl_result) . "')</script>";
         }
     } else {
         echo "<script language='javascript'>window.console.log('an error occurred when uploading picture')</script>";
@@ -51,7 +62,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
 function test_input($data) {
     $data = trim($data);
-    $data = stripslashes($data);
+    // $data = addslashes($data);
     $data = htmlspecialchars($data);
     return $data;
 }
