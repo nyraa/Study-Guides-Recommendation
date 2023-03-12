@@ -1,14 +1,18 @@
 <?php
 echo "<head><meta name='robots' content='noindex'></head>";
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!".$connection->connnect_error);
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!$e");
+}
 //else echo "Success!";
 $connection->set_charset("utf8");
 
 function test_input($data) {
     $data = trim($data);
-    $data = stripslashes($data);
+    // $data = addslashes($data);
     $data = htmlspecialchars($data);
     return $data;
 }
@@ -17,12 +21,22 @@ if($_SERVER["REQUEST_METHOD"] == "GET") { // study or emo
     $category = $_GET["type"];
     if($category == 0) $type = "studyPlan";
     else $type = "emotion";
-    echo "<script>console.log('" . $category . "');</script>";
-    $select = "SELECT * FROM msgBoard WHERE category='$category' AND review=1";
-    $result = $connection->query($select);
-    if($result->num_rows > 0){
+    echo "<script>console.log('" . addslashes($category) . "');</script>";
+    $select = "SELECT * FROM msgBoard WHERE category=:category AND review=1";
+    $stmt = $connection->prepare($select);
+    $stmt->bindParam(':category', $category, PDO::PARAM_STR);
+    $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if(empty($result))
+    {
+        echo "尚無人留言";
+    }
+    else
+    {
         $flag = 0;
-        while($row = $result -> fetch_assoc()){
+        foreach($result as $row)
+        {
             if($flag == 1){
                 echo "<hr style='margin-left: 1%; margin-right: 1%;'>";
             }
@@ -33,8 +47,6 @@ if($_SERVER["REQUEST_METHOD"] == "GET") { // study or emo
             echo "</div>";
             $flag = 1;
         }
-    } else {
-        echo "尚無人留言";
     }
 }
 ?>
