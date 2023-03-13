@@ -1,9 +1,12 @@
 <?php
 require_once "databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if ($connection->error) die("database connection error!");
-//else echo "Success!";
-$connection->set_charset("utf8");
+
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!$e");
+}
 
 $subject = $book = $category = $subcategory = $overall = $content = $difficulty = $answer = $layout = $comment = "";
 $bookriver = 0;
@@ -13,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
     //echo $get_subject;
     if (isset($_GET["code"])) {
         $code = $_GET["code"];
-        echo "<script>window.onload = function(){ document.getElementById('bookriver').setAttribute('value', '" . $code . "'); }</script>";
+        echo "<script>window.onload = function(){ document.getElementById('bookriver').setAttribute('value', '" . addslash($code) . "'); }</script>";
     }
 }
 ?>
@@ -183,7 +186,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
             <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="needs-validation" novalidate onsubmit="return newComment();">
                 <label>科目：</label>
 
-                <select class="form-select" name="subject" onchange="window.location='<?php echo $PHP_SELF; ?>?subject='+this.value+'&code='+document.getElementById('bookriver').getAttribute('value');" required>
+                <select class="form-select" name="subject" onchange="window.location='<?php echo htmlspecialchars($PHP_SELF); ?>?subject='+this.value+'&code='+document.getElementById('bookriver').getAttribute('value');" required>
                     <option value=""> </option>
                     <option value="國文" <?php if (isset($get_subject) && $get_subject === "國文") echo "selected"; ?>>國文</option>
                     <option value="數學" <?php if (isset($get_subject) && $get_subject === "數學") echo "selected"; ?>>數學</option>
@@ -204,24 +207,40 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
                 <select class="form-select" name="book" id="book" required>
                     <?php
                     if (isset($get_bookId)) {
-                        $select = "SELECT name, publisher FROM book WHERE id='$get_bookId'";
-                        $result = $connection->query($select);
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
-                                echo "<option value=" . $get_bookId . ">" . $row['publisher'] . '&nbsp&nbsp' . $row['name'] . "</option>";
-                            }
-                        } else {
+                        $select = "SELECT name, publisher FROM book WHERE id=:book_id";
+                        $stmt = $pdo->prepare($select);
+                        $stmt->bindParam(':book_id', $get_bookId);
+                        $stmt->execute();
+                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                        if(empty($result))
+                        {
                             echo "error";
                         }
+                        else
+                        {
+                            foreach($result as $row)
+                            {
+                                echo "<option value=" . $get_bookId . ">" . $row['publisher'] . '&nbsp&nbsp' . $row['name'] . "</option>";
+                            }
+                        }
                     } else if (isset($get_subject)) {
-                        $select = "SELECT * from book WHERE subject='$get_subject'";
-                        $result = $connection->query($select);
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
+                        $select = "SELECT * FROM book WHERE subject=:subject";
+                        $stmt = $pdo->prepare($select);
+                        $stmt->bindParam(':subject', $get_subject, PDO::PARAM_STR);
+                        $stmt->execute();
+                        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        if(empty($result))
+                        {
+                            echo "error";
+                        }
+                        else
+                        {
+                            foreach($result as $row)
+                            {
                                 echo "<option value=" . $row['id'] . ">" . $row['publisher'] . '&nbsp&nbsp' . $row['name'] . "</option>";
                             }
-                        } else {
-                            echo "error";
                         }
                     } else {
                         echo "<option value=''> </option>";
@@ -351,8 +370,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $acceptedChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890@#%^&*+=-_";
     $redeemCode = substr(str_shuffle($acceptedChar), 0, 7);
     $insert = "INSERT INTO questionnaire (book, overall, content, difficulty, answer, layout, comment, redeemCode, bookriver) 
-        VALUES ('$id', '$overall', '$content', '$difficulty', '$answer', '$layout', '$comment', '$redeemCode', '$bookriver')";
-    if ($connection->query($insert) === true) {
+           VALUES (:id, :overall, :content, :difficulty, :answer, :layout, :comment, :redeemCode, :bookriver)";
+
+    $stmt = $pdo->prepare($insert);
+    // types are not verified
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->bindValue(':overall', $overall, PDO::PARAM_INT);
+    $stmt->bindValue(':content', $content, PDO::PARAM_INT);
+    $stmt->bindValue(':difficulty', $difficulty, PDO::PARAM_INT);
+    $stmt->bindValue(':answer', $answer, PDO::PARAM_INT);
+    $stmt->bindValue(':layout', $layout, PDO::PARAM_INT);
+    $stmt->bindValue(':comment', $comment, PDO::PARAM_STR);
+    $stmt->bindValue(':redeemCode', $redeemCode, PDO::PARAM_STR);
+    $stmt->bindValue(':bookriver', $bookriver, PDO::PARAM_INT);
+    if ($stmt->execute()) {
         echo "
         <script type='text/javascript' src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js'></script>
         <script>
