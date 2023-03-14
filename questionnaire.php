@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
     //echo $get_subject;
     if (isset($_GET["code"])) {
         $code = $_GET["code"];
-        echo "<script>window.onload = function(){ document.getElementById('bookriver').setAttribute('value', '" . addslash($code) . "'); }</script>";
+        echo "<script>window.onload = function(){ document.getElementById('bookriver').setAttribute('value', '" . addslashes($code) . "'); }</script>";
     }
 }
 ?>
