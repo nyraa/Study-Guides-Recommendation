@@ -2,10 +2,13 @@
 require_once "auth.php";
 
 require_once "../databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!");
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!");
+}
 //else echo "Success!";
-$connection->set_charset("utf8");
 
 $id = $choice = '';
 
@@ -14,10 +17,20 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     $choice = $_POST["choice"];
 
     if($choice == "deleteAComment"){
-        $select = "SELECT * FROM questionnaire WHERE id='$id'";
-        $result = $connection->query($select);
-        if($result->num_rows > 0){
-            while($row = $result->fetch_assoc()){
+        $select = "SELECT * FROM questionnaire WHERE id=:id";
+        $stmt = $pdo->prepare($select);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if(empty($result))
+        {
+            echo "查無此筆資料";
+        }
+        else
+        {
+            foreach($result as $row)
+            {
                 $bookId = $row['book'];
                 $overall = $row['overall'];
                 $content = $row['content'];
@@ -28,10 +41,20 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             }
             echo "data to delete: " . $bookId . " " . $overall . " " . $content . " " . $difficulty . " " . $answer . " " . $layout . "<br>";
             if($review == 1){
-                $selectBook = "SELECT * FROM book WHERE id='$bookId'";
-                $_result = $connection->query($selectBook);
-                if($_result->num_rows > 0){
-                    while($_row = $_result->fetch_assoc()){
+                $selectBook = "SELECT * FROM book WHERE id=:bookId";
+                $stmt = $pdo->prepare($selectBook);
+                $stmt->bindParam(':bookId', $bookId, PDO::PARAM_INT);
+                $stmt->execute();
+                $_result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if(empty($_result))
+                {
+                    echo "此評論之書籍不存在";
+                }
+                else
+                {
+                    foreach($_result as $_row)
+                    {
                         $dataAmount = $_row['dataAmount'];
                         $_overall = $_row['overall'];
                         $_content = $_row['content'];
@@ -48,51 +71,85 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     $newLayout = ($_layout * $dataAmount - $layout) / ($dataAmount - 1);  
                     $newDataAmount = $dataAmount - 1;
                     echo "<book> new data: " . $newDataAmount . " " . $newOverall . " " . $newContent . " " . $newDifficulty . " " . $newAnswer . " " . $newLayout . "<br>";
+                    $update = "UPDATE book SET dataAmount=:newDataAmount, overall=:newOverall, difficulty=:newDifficulty,
+                    answer=:newAnswer, layout=:newLayout WHERE id=:bookId";
+                    
+                    $update = "UPDATE book SET dataAmount=:newDataAmount, overall=:newOverall, difficulty=:newDifficulty,answer=:newAnswer, layout=:newLayout WHERE id=:bookId";
+                    $stmt_update = $pdo->prepare($update);
+                    $stmt_update->bindParam(':newDataAmount', $newDataAmount, PDO::PARAM_INT);
+                    $stmt_update->bindParam(':newOverall', $newOverall, PDO::PARAM_INT);
+                    $stmt_update->bindParam(':newDifficulty', $newDifficulty, PDO::PARAM_INT);
+                    $stmt_update->bindParam(':newAnswer', $newAnswer, PDO::PARAM_INT);
+                    $stmt_update->bindParam(':newLayout', $newLayout, PDO::PARAM_INT);
+                    $stmt_update->bindParam(':bookId', $bookId, PDO::PARAM_INT);
+                    
 
-                    $update = "UPDATE book SET dataAmount='$newDataAmount', overall='$newOverall', difficulty='$newDifficulty',
-                        answer='$newAnswer', layout='$newLayout' WHERE id='$bookId'";
-                    $delete = "DELETE FROM questionnaire WHERE id='$id'";
-                    if($connection->query($update) === true){
+                    $delete = "DELETE FROM questionnaire WHERE id=:id";
+                    $stmt_delete = $pdo->prepare($delete);
+                    $stmt_delete->bindParam(':id', $id, PDO::PARAM_INT);
+                    
+                    if($stmt_update->execute())
+                    {
                         echo "成功更新 book 資料表 編號" . $bookId . "<br>";
-                    } else {
+                    }
+                    else
+                    {
                         echo "error1";
                     }
-                    if($connection->query($delete) === true){
+                    if($stmt_delete->execute())
+                    {
                         echo "成功刪除編號" . $id . "評論";
-                    } else {
+                    }
+                    else
+                    {
                         echo "error2";
                     }
-                } else {
-                    echo "此評論之書籍不存在";
+
                 }
             } else { // if not reviewed
-                $delete = "DELETE FROM questionnaire WHERE id='$id'";
-                if($connection->query($delete) === true){
+                $delete = "DELETE FROM questionnaire WHERE id=:id";
+                $stmt_delete = $pdo->prepare($delete);
+                $stmt_delete->bindParam(':id', $id, PDO::PARAM_INT);
+                
+                if($stmt_delete->execute()){
                     echo "成功刪除編號" . $id . "評論";
                 } else {
                     echo "error";
                 }
             }
-        } else {
-            echo "查無此筆資料";
         }
     } else if($choice == "resetCommentOfABook"){
-        $delete = "DELETE FROM questionnaire WHERE book='$id'";
-        if($connection->query($delete) === true){
+        $delete = "DELETE FROM questionnaire WHERE book=:id";
+        $stmt_delete = $pdo->prepare($delete);
+        $stmt_delete->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if($stmt_delete->execute()){
             echo "成功刪除書籍編號為 " . $id . " 的所有評論<br>";
         } else {
             echo "error";
         }
 
-        $update = "UPDATE book SET dataAmount=0, overall=0.000, content=0.000, difficulty=0.000, answer=0.000, layout=0.000 WHERE id='$id'";
-        if($connection->query($update) === true){
+        $update = "UPDATE book SET dataAmount=:dataAmount, overall=:overall, content=:content, difficulty=:difficulty, answer=:answer, layout=:layout WHERE id=:id";
+        $stmt = $pdo->prepare($update);
+        $stmt->bindValue(':dataAmount', 0, PDO::PARAM_INT);
+        $stmt->bindValue(':overall', 0.000, PDO::PARAM_STR);
+        $stmt->bindValue(':content', 0.000, PDO::PARAM_STR);
+        $stmt->bindValue(':difficulty', 0.000, PDO::PARAM_STR);
+        $stmt->bindValue(':answer', 0.000, PDO::PARAM_STR);
+        $stmt->bindValue(':layout', 0.000, PDO::PARAM_STR);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        
+        if($stmt->execute()){
             echo "成功重置書籍編號" . $id;
         } else {
             echo "error2";
         }
     } else if($choice == "deleteAMsg"){
-        $delete = "DELETE FROM msgBoard WHERE id='$id'";
-        if($connection->query($delete) === true){
+        $delete = "DELETE FROM msgBoard WHERE id=:id";
+        $stmt = $pdo->prepare($delete);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if($stmt->execute()){
             echo "成功刪除編號為 " . $id . " 的留言<br>";
         } else {
             echo "error";
