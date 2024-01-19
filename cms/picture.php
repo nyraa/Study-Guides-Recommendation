@@ -2,14 +2,11 @@
 require_once "auth.php";
 
 require_once "../databaseLogin.php";
-$connection = new mysqli($hostname, $username, $password, $database);
-if($connection->error) die("database connection error!");
-//else echo "Success!";
-$connection->set_charset("utf8");
-
-if($_SERVER["REQUEST_METHOD"] == "GET"){
-    $get_subject = $_GET["subject"];
-    //echo $get_subject;
+$dsn = "mysql:host=$hostname;dbname=$databasse;charset=utf8mb4";
+try {
+    $pdo = new PDO($dsn, $username, $password);
+} catch (PDOException $e) {
+    die("database connection error!");
 }
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
@@ -32,7 +29,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $ImgURL = $Received_JsonParse['data']['link'];
             echo $ImgURL."<br>";
             
-            $update = "UPDATE book SET picture='$ImgURL' WHERE id='$id'";
+            $update = "UPDATE book SET picture=:ImgUrl WHERE id=:id";
             if($connection->query($update) === true){
                 echo "update success";
             } else {
